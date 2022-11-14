@@ -69,9 +69,9 @@ int main() {
 
     struct input_event ev;
     
-    /* Open LED (fb0) and Joystick (event2) file descriptors */
+    /* Open LED (fb0) and Joystick (event1) file descriptors */
     char* fbdev = "/dev/fb0";
-    char* jevent = "/dev/input/event2";
+    char* jevent = "/dev/input/event1";
     session.fbfd = open(fbdev, O_RDWR);
     session.jfd = open(jevent, O_RDONLY);
 
@@ -141,10 +141,10 @@ void move_cursor(int x, int y) {
 }
 
 void handle_events(int evfd) {
-	struct input_event ev[64];
+	struct input_event ev[1];
 	int rd;
 
-	rd = read(evfd, ev, sizeof(struct input_event) * 64);
+	rd = read(evfd, ev, sizeof(struct input_event));
 	if (rd < (int) sizeof(struct input_event)) {
 		printf("expected %d bytes, got %d\n",
 		        (int) sizeof(struct input_event), rd);
@@ -155,6 +155,8 @@ void handle_events(int evfd) {
         return;
     if (ev->value != 1)
         return;
+
+    printf("%c\n", ev->value);
 
     switch(ev->code) {
         case UP:
