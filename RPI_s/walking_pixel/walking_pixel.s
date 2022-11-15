@@ -1,6 +1,7 @@
 .global main
 
 main:
+    mov r8, #0   @ Position counter
     while:
         @ Read from Joystick
         @open syscall 
@@ -29,9 +30,11 @@ main:
         svc #0
 
         @ Write to LED
-        mov r0, #1  @print to stdout
 
-        @ Get code
+        @print to stdout
+        mov r0, #1  
+
+        @ Get key code
         ldr r1, [sp, #10]
 
         @ if up
@@ -53,6 +56,11 @@ main:
         mov r2, #6
         mov r7, #4 @ 4 is write
         svc #0
+        sub r8, r8, #16 
+        cmp r8, #0
+        bge endif_up
+        add r8, r8, #128 
+        endif_up:
         b endif_key
 
         if_down:
@@ -74,6 +82,11 @@ main:
             mov r2, #6
             mov r7, #4 @ 4 is write
             svc #0
+            add r8, r8, #16 
+            cmp r8, #126
+            ble endif_down
+            sub r8, r8, #128 
+            endif_down:
             b endif_key
         
         if_left:
@@ -95,6 +108,11 @@ main:
             mov r2, #6
             mov r7, #4 @ 4 is write
             svc #0
+            sub r8, r8, #2
+            cmp r8, #0
+            bge endif_left
+            add r8, r8, #128 
+            endif_left:
             b endif_key
 
         if_right:
@@ -116,6 +134,11 @@ main:
             mov r2, #6
             mov r7, #4 @ 4 is write
             svc #0
+            add r8, r8, #2
+            cmp r8, #126
+            ble endif_right
+            sub r8, r8, #128 
+            endif_right:
             b endif_key
 
         if_enter:
@@ -139,31 +162,47 @@ main:
             svc #0
 
         endif_key:
+            @ mov r1, #'\r' 
+            @ str r1, [sp]
+            @ mov r1, #'n' 
+            @ str r1, [sp, #1]
+            @ mov r1, #'o' 
+            @ str r1, [sp, #2]
+            @ mov r1, #'k' 
+            @ str r1, [sp, #3]
+            @ mov r1, #'e' 
+            @ str r1, [sp, #4]
+            @ mov r1, #'y' 
+            @ str r1, [sp, #5]
+            @ mov r1, sp
+            @ mov r2, #6
+            @ mov r7, #4 @ 4 is write
+            @ svc #0
 
-        @ @open syscall 
-        @ ldr r0, =filebuffer_led
-        @ mov r1, #0101 @ O_WRONLY | O_CREAT
-        @ ldr r2, =0666 @ permissions
-        @ mov r7, #5 @ 5 is system call number for open
-        @ svc #0
-        @ cmp r0, #0
-        @ blt exit
+        @open syscall 
+        ldr r0, =filebuffer_led
+        mov r1, #0101 @ O_WRONLY | O_CREAT
+        ldr r2, =0666 @ permissions
+        mov r7, #5 @ 5 is system call number for open
+        svc #0
+        cmp r0, #0
+        blt exit
 
-        @ @r0 contains fd (file descriptor, an integer)
-        @ mov r5, r0
+        @r0 contains fd (file descriptor, an integer)
+        mov r5, r0
         
-        @ mov r0, #1
-
-        @ @write syscall
+        @write syscall
         @ use stack as buffer
-        @ mov r2, #10
-        @ ldr r1, [sp, r2]
-        @ str r1, [sp]
-        @ mov r1, sp
-        @ mov r2, #2
-        @ mov r7, #4 @ 4 is write
-        @ svc #0
-
+        ldr r3, =mask
+        mov r1, #0xFFFF
+        str r1, [r3, r8]
+        mov r1, r3
+        mov r2, #1024
+        mov r7, #4 @ 4 is write
+        svc #0
+        mov r1, #0x0000
+        str r1, [r3, r8]
+        
         @fsync syscall
         mov r0, r5
         mov r7, #118
@@ -184,6 +223,8 @@ exit:
 
 .data
 .align 2
+mask: .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+.align 2
 filebuffer_led: .asciz "/dev/fb0"
 .align 2
-file_joystick: .asciz "/dev/input/event1"
+file_joystick: .asciz "/dev/input/event2"
