@@ -1,21 +1,38 @@
 .global main
 .extern printf
+
 @ PARAMS
     @ r5: server socket id
     @ r6: client socket id
     @ r9: row
     @ r10: col
 main:
-    @ .ARM
-    @ add r3, pc, #1
-    @ bx  r3
-
-    @ .THUMB
 
     @ Initialize position variables
     mov r9, #0
     mov r10, #0
     
+    @Print 'socket'
+    mov r0, #1
+    mov r1, #'i' 
+    str r1, [sp]
+    mov r1, #'n' 
+    str r1, [sp, #1]
+    mov r1, #'i' 
+    str r1, [sp, #2]
+    mov r1, #'s' 
+    str r1, [sp, #3]
+    mov r1, #'c' 
+    str r1, [sp, #4]
+    mov r1, #'k' 
+    str r1, [sp, #5]
+    mov r1, #'\n' 
+    str r1, [sp, #6]
+    mov r1, sp
+    mov r2, #7
+    mov r7, #4
+    svc #1
+
     @ PARAMS
         @ syscall num: 281
         @ AF_INET: 2
@@ -31,16 +48,42 @@ main:
     @ save server socket id
     mov r5, r0
 
+    @ Print socket n
+    @ mov r1, r5
+    @ ldr r0, =print_num
+    @ bl printf
+
     cmp r5, #0
     bge setsocketopt
-    mov r0, #1
-    ldr r1, =socket_error_msg
-    mov r2, #128
-    mov r7, #4 
-    svc #1
+    @ mov r0, #1
+    @ ldr r1, =socket_error_msg
+    @ mov r2, #128
+    @ mov r7, #4 
+    @ svc #1
     b exit
 
 setsocketopt:
+    @Print 'sckopt'
+    mov r0, #1
+    mov r1, #'s' 
+    str r1, [sp]
+    mov r1, #'c' 
+    str r1, [sp, #1]
+    mov r1, #'k' 
+    str r1, [sp, #2]
+    mov r1, #'o' 
+    str r1, [sp, #3]
+    mov r1, #'p' 
+    str r1, [sp, #4]
+    mov r1, #'t' 
+    str r1, [sp, #5]
+    mov r1, #'\n' 
+    str r1, [sp, #6]
+    mov r1, sp
+    mov r2, #7
+    mov r7, #4
+    svc #1
+
     @ PARAMS
         @ syscall num: 294
         @ socket_id: r5
@@ -59,6 +102,23 @@ setsocketopt:
     svc #1
 
 bind:
+    @Print 'bind'
+    mov r0, #1
+    mov r1, #'b' 
+    str r1, [sp]
+    mov r1, #'i' 
+    str r1, [sp, #1]
+    mov r1, #'n' 
+    str r1, [sp, #2]
+    mov r1, #'d' 
+    str r1, [sp, #3]
+    mov r1, #'\n' 
+    str r1, [sp, #4]
+    mov r1, sp
+    mov r2, #7
+    mov r7, #4
+    svc #1
+
     @ PARAMS
         @ syscall num: 282
         @ socket_id: r5
@@ -72,13 +132,35 @@ bind:
     add r7, #82
     svc #1
 
+    @ Print bind ret
+    @ mov r1, r0
+    @ ldr r0, =print_num
+    @ bl printf
+
     cmp r0, #0
     bge listen
-    ldr r1, =bind_error_msg
-    svc #1
+    @ ldr r1, =bind_error_msg
+    @ svc #1
     b exit
 
 listen:
+    @Print 'lstn'
+    mov r0, #1
+    mov r1, #'l' 
+    str r1, [sp]
+    mov r1, #'s' 
+    str r1, [sp, #1]
+    mov r1, #'t' 
+    str r1, [sp, #2]
+    mov r1, #'n' 
+    str r1, [sp, #3]
+    mov r1, #'\n' 
+    str r1, [sp, #4]
+    mov r1, sp
+    mov r2, #7
+    mov r7, #4
+    svc #1
+
     @ PARAMS
         @ syscall num: 284
         @ socket_id: r5
@@ -86,18 +168,40 @@ listen:
     mov r0, r5
     mov r1, #2
     add r7, #2
+    mov r7, #200
+    add r7, #84
     svc #1
+
+    @ Print listen ret
+    @ mov r1, r0
+    @ ldr r0, =print_num
+    @ bl printf
 
     cmp r0, #0
     bge accept
-    mov r0, #1
-    ldr r1, =listen_error_msg
-    mov r2, #128
-    mov r7, #4 
-    svc #1
+    @ mov r0, #1
+    @ ldr r1, =listen_error_msg
+    @ mov r2, #128
+    @ mov r7, #4 
+    @ svc #1
     b exit
 
 accept:
+    @Print 'acc'
+    mov r0, #1
+    mov r1, #'a' 
+    str r1, [sp]
+    mov r1, #'c' 
+    str r1, [sp, #1]
+    mov r1, #'c' 
+    str r1, [sp, #2]
+    mov r1, #'\n' 
+    str r1, [sp, #3]
+    mov r1, sp
+    mov r2, #7
+    mov r7, #4
+    svc #1
+
     @ PARAMS
         @ syscall num: 285
         @ socket_id: r5
@@ -109,8 +213,14 @@ accept:
     @ mov r2, #16
     sub r1, r1, r1
     sub r2, r2, r2
-    add r7, #1
+    mov r7, #200
+    add r7, #85
     svc #1
+
+    @ Print accept ret
+    @ mov r1, r0
+    @ ldr r0, =print_num
+    @ bl printf
 
     @ save client socket id
     mov r6, r0
@@ -121,11 +231,11 @@ accept:
 
     cmp r6, #0
     bge read
-    mov r0, #1
-    ldr r1, =accept_error_msg
-    mov r2, #128
-    mov r7, #4 
-    svc #1
+    @ mov r0, #1
+    @ ldr r1, =accept_error_msg
+    @ mov r2, #128
+    @ mov r7, #4 
+    @ svc #1
     b exit
 
 read:
@@ -315,19 +425,6 @@ read:
     mov r7, #6 @ 6 is close
     svc #0
 
-    @ PARAMS
-        @ syscall: 289
-        @ client_socket: r6
-        @ msg: server_msg
-	@ send(client_socket, msg, strlen(hello), 0);
-    @ mov r0, r6
-    @ ldr r1, =server_msg
-    @ mov r2, #20
-    @ mov r3, #0
-    @ mov r7, #200
-    @ add r7, #89
-    @ svc #1
-
     b read
 
 exit:
@@ -392,23 +489,11 @@ exit:
 struct_addr:
 .ascii "\x02\x00"       // AF_INET 0xff will be NULLed 
 .ascii "\x1F\x90"       // port number 8080
-.byte 10,205,130,176           // IP Address
+.byte 10,1,0,3    // IP Address
 .align 4
 opt: .word 1
 .align 2
 print_num: .asciz "%d\n"
-.align 2
-socket_error_msg: .asciz "socket failed\n"
-.align 2
-bind_error_msg: .asciz "bind failed\n"
-.align 2
-listen_error_msg: .asciz "listen failed\n"
-.align 2
-accept_error_msg: .asciz "accept failed\n"
-.align 2
-server_msg: .asciz "Hello from server"
-.align 2
-hello_msg: .asciz "Hello message sent\n"
 .align 2
 mask: .word 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 .align 2

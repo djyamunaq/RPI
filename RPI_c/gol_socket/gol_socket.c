@@ -9,6 +9,19 @@
 #include <sys/mman.h>
 #include <poll.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#define PORT 8080
+#define UP 103
+#define LEFT 105
+#define DOWN 108
+#define RIGHT 106
+#define PRESS 28
 
 /*
 keyboard       joystick                    code
@@ -19,12 +32,6 @@ keyboard       joystick                    code
 <down arrow>   toward nearest board edge   108  0x6c
 <enter>        press down                   28  0x1c
 */
-
-#define UP 103
-#define LEFT 105
-#define DOWN 108
-#define RIGHT 106
-#define PRESS 28
 
 struct pos_t {
     unsigned int x;
@@ -61,7 +68,51 @@ void draw_scene();
 void restart();
 void life();
 
+char buffer[1024];
+int server_fd, new_socket, valread;
+struct sockaddr_in address;
+int opt;
+int addrlen;
+char* hello;
+
 int main() {
+    /* =============================================================== */
+    /* Socket server configuration */
+	opt = 1;
+	addrlen = sizeof(address);
+    hello = (char*) malloc(1024*sizeof(char));
+	strcpy(hello, "ack from server");
+
+    // Creating socket file descriptor
+	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("socket failed");
+		exit(EXIT_FAILURE);
+	}
+
+	// Forcefully attaching socket to the port 8080
+	if (setsockopt(server_fd, SOL_SOCKET,
+				SO_REUSEADDR | SO_REUSEPORT, &opt,
+				sizeof(opt))) {
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = INADDR_ANY;
+	address.sin_port = htons(PORT);
+
+    int k = bind(server_fd, (struct sockaddr*)&address,
+			sizeof(address));
+
+	if (k < 0) {
+		perror("bind failed");
+		exit(EXIT_FAILURE);
+	}
+	if (listen(server_fd, 3) < 0) {
+		perror("listen");
+		exit(EXIT_FAILURE);
+	}
+
+    /* =============================================================== */
     /* Setup Game Session */
     session.FPS = 5;
     session.cell_counter = 0;
@@ -88,7 +139,8 @@ int main() {
     struct pollfd evpoll = {
 		.events = POLLIN
 	};
-    evpoll.fd = session.jfd;
+    // evpoll.fd = session.jfd;
+    evpoll.fd = server_fd;
 
     /* Get LED frame buffer info */
     ioctl(session.fbfd, FBIOGET_VSCREENINFO, &(session.vinfo));
@@ -141,62 +193,41 @@ void move_cursor(int x, int y) {
 }
 
 void handle_events(int evfd) {
-	struct input_event ev[1];
-	int rd;
+    if((new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen)) < 0) {
+    	perror("accept");
+    	exit(EXIT_FAILURE);
+    }
+    int valread = read(new_socket, buffer, 1024);
+    // printf("%s\n", buffer);
 
-	rd = read(evfd, ev, sizeof(struct input_event));
-	if (rd < (int) sizeof(struct input_event)) {
-		printf("expected %d bytes, got %d\n",
-		        (int) sizeof(struct input_event), rd);
-		return;
-	}
-	
-    if (ev->type != EV_KEY)
-        return;
-    if (ev->value != 1)
-        return;
+    if(strcmp(buffer, "up") == 0) {
+        move_cursor(0, -1);
+    } else if(strcmp(buffer, "down") == 0) {
+        move_cursor(0, 1);
+    } else if(strcmp(buffer, "right") == 0) {
+        move_cursor(1, 0);
+    } else if(strcmp(buffer, "left") == 0) {
+        move_cursor(-1, 0);
+    } else if(strcmp(buffer, "enter") == 0) {
+        if(!session.game_started) {
+            const int fb_height = session.vinfo.yres;
 
-    printf("%c\n", ev->value);
+            session.cell_counter -= session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x];
 
-    switch(ev->code) {
-        case UP:
-            move_cursor(0, -1);
-            break;
-        case LEFT:
-            move_cursor(-1, 0);
-            break;
-        case DOWN:
-            move_cursor(0, 1);
-            break;
-        case RIGHT:
-            move_cursor(1, 0);
-            break;
-        case PRESS:
-            if(!session.game_started) {
-                const int fb_height = session.vinfo.yres;
+            session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x]++;
+            session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x] %= 2;
 
-                session.cell_counter -= session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x];
+            session.cell_counter += session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x];
 
-                session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x]++;
-                session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x] %= 2;
-
-                session.cell_counter += session.gol.grid[session.cursor_pos.y*fb_height + session.cursor_pos.x];
-
-                if(session.cell_counter == session.cell_lim) {
-                    session.game_started = 1;
-                }
-            } else {
-                restart();
+            if(session.cell_counter == session.cell_lim) {
+                session.game_started = 1;
             }
-            break;
-        default:
-            break;
+        } else {
+            restart();
+        }
     }
 
-    // printf("======================\n");
-    // printf("Type: %d\n", ev->type);
-    // printf("Value: %d\n", ev->value);
-    // printf("Code: %d\n", ev->code);
+    memset(&buffer, 0, sizeof(buffer));
 }
 
 void life() {
