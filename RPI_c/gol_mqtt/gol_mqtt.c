@@ -17,13 +17,16 @@
 #include <unistd.h>
 #include "MQTTClient.h"
 
+/* ADDRESS IN PRIVATE NETWORK => PROBABLY NEED TO CHANGE TO RUN */
 #define ADDRESS     "10.205.130.192:1883"
+/* ============================================================ */
 #define CLIENTID    "emqx_test"
 #define TOPIC       "gol-comm"
 #define PAYLOAD     "Hello World!"
 #define QOS         1
 #define TIMEOUT     10000L
 
+/* ASCII codes for (UP, LEFT, DOWN, RIGHT, PRESS) */
 #define UP 103
 #define LEFT 105
 #define DOWN 108
@@ -40,15 +43,22 @@ keyboard       joystick                    code
 <enter>        press down                   28  0x1c
 */
 
+/* Struct to store position of cells */
 struct pos_t {
     unsigned int x;
     unsigned int y;
 };
 
+/* Grid where the game develops */
 struct game_of_life_t {
     unsigned char grid[64];
 };
 
+/* 
+ * Game session struct stores data about number of initial cells before start game,
+ * number of active cells, if the game is started, the frame rate for updating LED 
+ * Matrix, position of cursos to select the cells, file descriptors for LED/Joystick
+ */
 struct game_session_t {
     unsigned int game_started;
     unsigned int cell_lim;
@@ -78,12 +88,12 @@ void delivered(void *context, MQTTClient_deliveryToken dt);
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message);
 void connlost(void *context, char *cause);
 
+/* Buffer to receive msg in MQTT protocol */
 char buffer[1024];
-int server_fd, new_socket, valread;
+/* Address of MQTT broker to subscribe */
 struct sockaddr_in address;
-int opt;
+/* Address length */
 int addrlen;
-char* hello;
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
@@ -95,19 +105,24 @@ int main() {
     int rc;
     int ch;
     
+    /* Create MQTT client */
     MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
     
+    /* Set callback functions fot MQTT client (Lost connection, msg received, msg delivered) */
     MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
     
+    /* Check if connection is successful */
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
         printf("Failed to connect, return code %d\n", rc);
         exit(EXIT_FAILURE);
     }
     printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
            "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
+    
+    /* Subscribe to topic */
     MQTTClient_subscribe(client, TOPIC, QOS);
 
     /* =============================================================== */
@@ -116,8 +131,6 @@ int main() {
     session.cell_counter = 0;
     session.cell_lim = 4;
 
-    struct input_event ev;
-    
     /* Open LED (fb0) and Joystick (event1) file descriptors */
     char* fbdev = "/dev/fb0";
     char* jevent = "/dev/input/event2";
@@ -134,12 +147,6 @@ int main() {
         exit(1);
     }
 
-    struct pollfd evpoll = {
-		.events = POLLIN
-	};
-    // evpoll.fd = session.jfd;
-    evpoll.fd = server_fd;
-
     /* Get LED frame buffer info */
     ioctl(session.fbfd, FBIOGET_VSCREENINFO, &(session.vinfo));
 
@@ -152,11 +159,13 @@ int main() {
     return 0;
 }
 
+/* Msg delivered callback */
 void delivered(void *context, MQTTClient_deliveryToken dt) {
     printf("Message with token value %d delivery confirmed\n", dt);
     deliveredtoken = dt;
 }
 
+/* Msg received callback */
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message) {
     int i;
     char* payloadptr;
@@ -208,11 +217,13 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     return 1;
 }
 
+/* Connection lost callback */
 void connlost(void *context, char *cause) {
     printf("\nConnection lost\n");
     printf("     cause: %s\n", cause);
 }
 
+/* Restart game parameters */
 void restart() {
     session.game_started = 0;
     session.cell_counter = 0;
@@ -247,6 +258,7 @@ void move_cursor(int x, int y) {
     // printf("%d %d\n", cursor_pos.x, cursor_pos.y);
 }
 
+/* Game of life logic */
 void life() {
     const int fbfd = session.fbfd;
     const struct fb_var_screeninfo vinfo = session.vinfo;
@@ -295,6 +307,7 @@ void life() {
     }
 }
 
+/* Draw scene on LED Matrix */
 void draw_scene() {
     const int fbfd = session.fbfd;
     const struct fb_var_screeninfo vinfo = session.vinfo;

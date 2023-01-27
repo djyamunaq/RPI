@@ -20,21 +20,29 @@ keyboard       joystick                    code
 <enter>        press down                   28  0x1c
 */
 
+/* ASCII codes for (UP, LEFT, DOWN, RIGHT, PRESS) */
 #define UP 103
 #define LEFT 105
 #define DOWN 108
 #define RIGHT 106
 #define PRESS 28
 
+/* Struct to store position of cells */
 struct pos_t {
     unsigned int x;
     unsigned int y;
 };
 
+/* Grid where the game develops */
 struct game_of_life_t {
     unsigned char grid[64];
 };
 
+/* 
+ * Game session struct stores data about number of initial cells before start game,
+ * number of active cells, if the game is started, the frame rate for updating LED 
+ * Matrix, position of cursos to select the cells, file descriptors for LED/Joystick
+ */
 struct game_session_t {
     unsigned int game_started;
     unsigned int cell_lim;
@@ -75,7 +83,7 @@ int main() {
     session.fbfd = open(fbdev, O_RDWR);
     session.jfd = open(jevent, O_RDONLY);
 
-    /* Check if file descriptors */
+    /* Check if file descriptors are valid */
     if(session.fbfd < 0) {
         perror("Failed to open LED frame buffer");
         exit(1);
@@ -85,15 +93,20 @@ int main() {
         exit(1);
     }
 
+    /* Set polling as type pollin */
     struct pollfd evpoll = {
 		.events = POLLIN
 	};
+    /* Set file descriptor for event polling */
     evpoll.fd = session.jfd;
 
     /* Get LED frame buffer info */
     ioctl(session.fbfd, FBIOGET_VSCREENINFO, &(session.vinfo));
 
+    /* Set frame time */
     unsigned int frame_time = 1000/session.FPS;
+    
+    /* Game loop */
     while(1) {
         while (poll(&evpoll, 1, 0) > 0)
 			handle_events(evpoll.fd);
@@ -106,6 +119,7 @@ int main() {
     return 0;
 }
 
+/* Set all parameters to initial state */
 void restart() {
     session.game_started = 0;
     session.cell_counter = 0;
@@ -144,6 +158,7 @@ void handle_events(int evfd) {
 	struct input_event ev[1];
 	int rd;
 
+    /* Read from joystick */
 	rd = read(evfd, ev, sizeof(struct input_event));
 	if (rd < (int) sizeof(struct input_event)) {
 		printf("expected %d bytes, got %d\n",
@@ -199,6 +214,7 @@ void handle_events(int evfd) {
     // printf("Code: %d\n", ev->code);
 }
 
+/* Game of life logic */
 void life() {
     const int fbfd = session.fbfd;
     const struct fb_var_screeninfo vinfo = session.vinfo;
@@ -247,6 +263,7 @@ void life() {
     }
 }
 
+/* Draw in LED Matrix */
 void draw_scene() {
     const int fbfd = session.fbfd;
     const struct fb_var_screeninfo vinfo = session.vinfo;

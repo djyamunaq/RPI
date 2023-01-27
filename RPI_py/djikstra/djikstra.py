@@ -12,6 +12,7 @@ import sys
 
 sense = SenseHat()
 
+# Set colors
 r = (255, 0, 0)
 g = (0, 255, 0)
 b = (0, 0, 255)
@@ -51,7 +52,6 @@ class Game:
     def restart(self):
         sense.clear(w)
         self.__init__()
-
 
     def move_cursor(self, key):
         c_x = self.cur_pos[0]
@@ -156,8 +156,6 @@ class Djikstra:
         
         if (self.visited[i][j])[0] == 1:
             return False
-
-        # print('(', i, ', ', j, ')')
 
         (self.visited[i][j])[0] = 1 
 
