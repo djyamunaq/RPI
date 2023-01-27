@@ -18,7 +18,8 @@
 #include "MQTTClient.h"
 
 /* ADDRESS IN PRIVATE NETWORK => PROBABLY NEED TO CHANGE TO RUN */
-#define ADDRESS     "10.205.130.192:1883"
+// #define ADDRESS     "10.205.130.125:1883"
+// #define ADDRESS     "10.1.0.2:1883"
 /* ============================================================ */
 #define CLIENTID    "emqx_test"
 #define TOPIC       "gol-comm"
@@ -119,8 +120,7 @@ int main() {
         printf("Failed to connect, return code %d\n", rc);
         exit(EXIT_FAILURE);
     }
-    printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-           "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
+    printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n", TOPIC, CLIENTID, QOS);
     
     /* Subscribe to topic */
     MQTTClient_subscribe(client, TOPIC, QOS);
